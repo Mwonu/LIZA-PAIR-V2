@@ -6,7 +6,6 @@ import {
     useMultiFileAuthState, 
     delay, 
     makeCacheableSignalKeyStore, 
-    Browsers, 
     jidNormalizedUser, 
     fetchLatestBaileysVersion 
 } from '@whiskeysockets/baileys';
@@ -45,15 +44,17 @@ router.get('/', async (req, res) => {
                 },
                 printQRInTerminal: false,
                 logger: pino({ level: "fatal" }),
-                // ട്രസ്റ്റഡ് ആയ ബ്രൗസർ ഫോർമാറ്റ്
-                browser: Browsers.macOS("Desktop"), 
+                // കസ്റ്റം ബ്രൗസർ സെറ്റിംഗ്സ് - (hank!nd3 p4d4y41!)
+                // ഇത് Chrome ഓൺ Windows ആയി വാട്സാപ്പിനെ കാണിക്കും
+                browser: ["Chrome (Linux)", "Chrome", "110.0.5481.177"], 
                 connectTimeoutMs: 60000,
-                syncFullHistory: false, // പഴയ മെസ്സേജുകൾ ലോഡ് ചെയ്യുന്നത് ഒഴിവാക്കി ✅
+                syncFullHistory: false,
                 markOnlineOnConnect: true,
             });
 
             if (!KnightBot.authState.creds.registered) {
-                await delay(3000); 
+                // ഡിലേ അല്പം കൂട്ടി, സെർവർ സ്റ്റേബിൾ ആകാൻ സമയം നൽകുന്നു
+                await delay(5000); 
                 try {
                     let code = await KnightBot.requestPairingCode(num);
                     code = code?.match(/.{1,4}/g)?.join('-') || code;
@@ -63,7 +64,7 @@ router.get('/', async (req, res) => {
                 } catch (error) {
                     console.error("Pairing Code Error:", error);
                     if (!res.headersSent) {
-                        res.status(500).send({ code: 'വാട്സാപ്പ് സെർവർ ബിസിയാണ്, അല്പം കഴിഞ്ഞ് ശ്രമിക്കൂ.' });
+                        res.status(500).send({ code: 'വാട്സാപ്പ് താൽക്കാലികമായി ബ്ലോക്ക് ചെയ്തു. 5 മിനിറ്റിന് ശേഷം ശ്രമിക്കൂ.' });
                     }
                 }
             }
@@ -83,15 +84,12 @@ router.get('/', async (req, res) => {
                             const sessionID = "LIZA~" + base64Session;
 
                             const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
-                            
-                            // വാട്സാപ്പിലേക്ക് സെഷൻ ഐഡി അയക്കുന്നു
                             await KnightBot.sendMessage(userJid, { text: sessionID });
 
                             await KnightBot.sendMessage(userJid, {
-                                text: `✅ *LIZA-AI CONNECTED!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n\n_ഈ ഐഡി സുരക്ഷിതമായി സൂക്ഷിക്കുക._`
+                                text: `✅ *LIZA-AI CONNECTED!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n\n_സെഷൻ ഐഡി വിജയകരമായി ക്രിയേറ്റ് ചെയ്തു._`
                             });
                         }
-
                         await delay(2000);
                         removeFile(dirs);
                         setTimeout(() => { process.exit(0); }, 3000); 
