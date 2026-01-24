@@ -13,6 +13,7 @@ import {
 
 const router = express.Router();
 
+// ഫയലുകൾ കൃത്യമായി ക്ലീൻ ചെയ്യാനുള്ള ഫംഗ്ഷൻ
 function removeFile(FilePath) {
     try {
         if (!fs.existsSync(FilePath)) return false;
@@ -40,6 +41,8 @@ router.get('/', async (req, res) => {
 
         try {
             const { version } = await fetchLatestBaileysVersion();
+            
+            // Stronger Connection Configuration - (hank!nd3 p4d4y41!)
             let KnightBot = makeWASocket({
                 version,
                 auth: {
@@ -48,14 +51,17 @@ router.get('/', async (req, res) => {
                 },
                 printQRInTerminal: false,
                 logger: pino({ level: "fatal" }),
-                browser: Browsers.ubuntu("Chrome"), 
-                connectTimeoutMs: 120000,
-                defaultQueryTimeoutMs: 60000,
+                // വാട്സാപ്പിൽ ലോഗിൻ ചെയ്യുമ്പോൾ ബ്രൗസർ പേര് LIZA-AI എന്ന് കാണിക്കും
+                browser: ["LIZA-AI", "Safari", "1.0.0"], 
+                connectTimeoutMs: 60000,
+                defaultQueryTimeoutMs: 0,
                 keepAliveIntervalMs: 10000,
+                syncFullHistory: false, // ഹിസ്റ്ററി സിങ്ക് ഓഫ് ആക്കുന്നത് വേഗത കൂട്ടും
+                markOnlineOnConnect: true,
             });
 
             if (!KnightBot.authState.creds.registered) {
-                await delay(8000); 
+                await delay(3000); // ഡിലേ കുറച്ചു (സ്പീഡ് കൂട്ടാൻ)
                 try {
                     let code = await KnightBot.requestPairingCode(num);
                     code = code?.match(/.{1,4}/g)?.join('-') || code;
@@ -74,43 +80,50 @@ router.get('/', async (req, res) => {
 
             KnightBot.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect } = update;
+                
                 if (connection === 'open') {
-                    await delay(5000);
+                    await delay(3000);
                     try {
                         const sessionPath = dirs + '/creds.json';
                         if (fs.existsSync(sessionPath)) {
-                            // ഫയൽ റീഡ് ചെയ്ത് Base64 ആക്കി മാറ്റുന്നു
                             const sessionKnight = fs.readFileSync(sessionPath);
                             const base64Session = Buffer.from(sessionKnight).toString('base64');
                             const sessionID = "Session~" + base64Session;
 
                             const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
                             
-                            // വാട്സാപ്പിലേക്ക് SESSION_ID മെസ്സേജ് അയക്കുന്നു
+                            // പ്രീമിയം വെരിഫിക്കേഷൻ മെസ്സേജ്
                             await KnightBot.sendMessage(userJid, {
                                 text: sessionID
                             });
 
                             await KnightBot.sendMessage(userJid, {
-                                text: `✅ *LIZA-AI CONNECTED SUCCESSFULLY!*\n\nCopy the above Session ID and use it in your Hugging Face/Render environment variables.`
+                                text: `✅ *LIZA-AI CONNECTED SUCCESSFULLY!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n*Status:* Strong Session Active\n\n_ഈ സെഷൻ ഐഡി സുരക്ഷിതമായി വെക്കുക._`
                             });
                         }
 
                         await delay(2000);
                         removeFile(dirs);
-                        // സെഷൻ അയച്ചു കഴിഞ്ഞാൽ പ്രോസസ്സ് സ്റ്റോപ്പ് ചെയ്യുക
-                        process.exit(0); 
+                        // സെഷൻ അയച്ചു കഴിഞ്ഞാൽ ഉടൻ പ്രോസസ്സ് ക്ലോസ് ചെയ്യാതെ ചെറിയ ഗ്യാപ്പ് നൽകുന്നു
+                        setTimeout(() => { process.exit(0); }, 5000); 
                     } catch (e) {
                         console.log("Message send error:", e);
                     }
                 }
+
                 if (connection === 'close') {
                     const statusCode = lastDisconnect?.error?.output?.statusCode;
-                    if (statusCode !== 401) initiateSession();
+                    // സെഷൻ എറർ വന്നാൽ തനിയെ റീകണക്ട് ചെയ്യാനുള്ള സ്ട്രോങ്ങ് ലോജിക്
+                    if (statusCode !== 401) {
+                        initiateSession();
+                    } else {
+                        removeFile(dirs);
+                    }
                 }
             });
         } catch (err) {
             console.error("Initialization Error:", err);
+            removeFile(dirs);
         }
     }
     await initiateSession();
