@@ -6,6 +6,7 @@ import {
     useMultiFileAuthState, 
     delay, 
     makeCacheableSignalKeyStore, 
+    Browsers,
     jidNormalizedUser, 
     fetchLatestBaileysVersion 
 } from '@whiskeysockets/baileys';
@@ -25,7 +26,13 @@ router.get('/', async (req, res) => {
     let num = req.query.number;
     if (!num) return res.status(400).send({ code: "Phone number is required" });
 
+    // നമ്പറിലെ ചിഹ്നങ്ങൾ ഒഴിവാക്കി വൃത്തിയാക്കുന്നു
     num = num.replace(/[^0-9]/g, '');
+
+    // കൺട്രി കോഡ് ഇല്ലാത്ത 10 അക്ക നമ്പറാണെങ്കിൽ ഇന്ത്യയുടെ 91 ചേർക്കുന്നു
+    if (num.length === 10 && !num.startsWith('91')) {
+        num = '91' + num;
+    }
 
     let dirs = './' + num;
     await removeFile(dirs);
@@ -36,7 +43,6 @@ router.get('/', async (req, res) => {
         try {
             const { version } = await fetchLatestBaileysVersion();
             
-            // KnightBot മാറ്റി LIZA_AI എന്നാക്കി - (hank!nd3 p4d4y41!)
             let LIZA_AI = makeWASocket({
                 version,
                 auth: {
@@ -45,16 +51,17 @@ router.get('/', async (req, res) => {
                 },
                 printQRInTerminal: false,
                 logger: pino({ level: "fatal" }),
-                // ട്രസ്റ്റഡ് ആയ പുതിയ ബ്രൗസർ സെറ്റിംഗ്സ്
-                browser: ["Ubuntu", "Chrome", "110.0.5563.147"], 
+                // ഒഫീഷ്യൽ രീതിയിലേക്ക് മാറ്റി - (hank!nd3 p4d4y41!)
+                browser: Browsers.macOS('Chrome'), 
                 connectTimeoutMs: 60000,
                 syncFullHistory: false,
                 markOnlineOnConnect: true,
             });
 
             if (!LIZA_AI.authState.creds.registered) {
-                await delay(5000); 
+                await delay(3000); 
                 try {
+                    // കറക്റ്റ് ഫോർമാറ്റിലുള്ള നമ്പർ അയക്കുന്നു
                     let code = await LIZA_AI.requestPairingCode(num);
                     code = code?.match(/.{1,4}/g)?.join('-') || code;
                     if (!res.headersSent) {
@@ -63,7 +70,7 @@ router.get('/', async (req, res) => {
                 } catch (error) {
                     console.error("Pairing Code Error:", error);
                     if (!res.headersSent) {
-                        res.status(500).send({ code: 'വാട്സാപ്പ് സെർവർ ബിസിയാണ്. അല്പം കഴിഞ്ഞ് ശ്രമിക്കൂ.' });
+                        res.status(500).send({ code: 'Service Error. Try again in 5 minutes.' });
                     }
                 }
             }
@@ -83,12 +90,10 @@ router.get('/', async (req, res) => {
                             const sessionID = "LIZA~" + base64Session;
 
                             const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
-                            
-                            // സെഷൻ ഐഡി അയക്കുന്നു
                             await LIZA_AI.sendMessage(userJid, { text: sessionID });
 
                             await LIZA_AI.sendMessage(userJid, {
-                                text: `✅ *LIZA-AI CONNECTED!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n\n_ഈ ഐഡി സുരക്ഷിതമായി സൂക്ഷിക്കുക._`
+                                text: `✅ *LIZA-AI CONNECTED!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n\n_സെഷൻ ഐഡി വിജയകരമായി ക്രിയേറ്റ് ചെയ്തു._`
                             });
                         }
                         await delay(2000);
