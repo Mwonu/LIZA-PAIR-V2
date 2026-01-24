@@ -26,7 +26,6 @@ router.get('/', async (req, res) => {
     let num = req.query.number;
     if (!num) return res.status(400).send({ code: "Phone number is required" });
 
-    // നമ്പറിലെ ചിഹ്നങ്ങൾ ഒഴിവാക്കുന്നു
     num = num.replace(/[^0-9]/g, '');
 
     let dirs = './' + num;
@@ -46,19 +45,16 @@ router.get('/', async (req, res) => {
                 },
                 printQRInTerminal: false,
                 logger: pino({ level: "fatal" }),
-                // ബ്രൗസർ ലിസ്റ്റ് മാറ്റം - ഇത് എറർ ഒഴിവാക്കും
-                browser: Browsers.ubuntu("Chrome"), 
+                // ട്രസ്റ്റഡ് ആയ ബ്രൗസർ ഫോർമാറ്റ്
+                browser: Browsers.macOS("Desktop"), 
                 connectTimeoutMs: 60000,
-                defaultQueryTimeoutMs: 0,
-                keepAliveIntervalMs: 10000,
-                syncFullHistory: false,
+                syncFullHistory: false, // പഴയ മെസ്സേജുകൾ ലോഡ് ചെയ്യുന്നത് ഒഴിവാക്കി ✅
                 markOnlineOnConnect: true,
             });
 
             if (!KnightBot.authState.creds.registered) {
-                await delay(2000); 
+                await delay(3000); 
                 try {
-                    // നമ്പറിൽ + ഇല്ലെന്ന് ഉറപ്പുവരുത്തി കോഡ് ചോദിക്കുന്നു
                     let code = await KnightBot.requestPairingCode(num);
                     code = code?.match(/.{1,4}/g)?.join('-') || code;
                     if (!res.headersSent) {
@@ -67,7 +63,7 @@ router.get('/', async (req, res) => {
                 } catch (error) {
                     console.error("Pairing Code Error:", error);
                     if (!res.headersSent) {
-                        res.status(500).send({ code: 'വാട്സാപ്പ് സെർവർ ബിസിയാണ്, ദയവായി അല്പം കഴിഞ്ഞ് ശ്രമിക്കൂ.' });
+                        res.status(500).send({ code: 'വാട്സാപ്പ് സെർവർ ബിസിയാണ്, അല്പം കഴിഞ്ഞ് ശ്രമിക്കൂ.' });
                     }
                 }
             }
@@ -78,17 +74,17 @@ router.get('/', async (req, res) => {
                 const { connection, lastDisconnect } = update;
                 
                 if (connection === 'open') {
-                    await delay(5000); // കണക്ഷൻ സ്റ്റേബിൾ ആകാൻ സമയം നൽകുന്നു
+                    await delay(5000);
                     try {
                         const sessionPath = dirs + '/creds.json';
                         if (fs.existsSync(sessionPath)) {
                             const sessionKnight = fs.readFileSync(sessionPath);
                             const base64Session = Buffer.from(sessionKnight).toString('base64');
-                            const sessionID = "LIZA~" + base64Session; // സിമ്പിൾ ഫോർമാറ്റ്
+                            const sessionID = "LIZA~" + base64Session;
 
                             const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
                             
-                            // സെഷൻ ഐഡി അയക്കുന്നു
+                            // വാട്സാപ്പിലേക്ക് സെഷൻ ഐഡി അയക്കുന്നു
                             await KnightBot.sendMessage(userJid, { text: sessionID });
 
                             await KnightBot.sendMessage(userJid, {
