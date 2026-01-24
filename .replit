@@ -3,7 +3,7 @@ modules = ["nodejs-20", "web"]
 expertMode = true
 
 [nix]
-channel = "stable-25_05"
+channel = "stable-24_05" # Stable വേർഷനിലേക്ക് മാറ്റി
 
 [workflows]
 runButton = "Project"
@@ -31,7 +31,7 @@ outputType = "webview"
 
 [[ports]]
 localPort = 5000
-externalPort = 80
+externalPort = 443 # Replit വെബ് വ്യൂവിന് 443 ആണ് കൂടുതൽ അനുയോജ്യം
 
 [deployment]
 deploymentTarget = "autoscale"
