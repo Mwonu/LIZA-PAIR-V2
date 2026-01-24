@@ -1,67 +1,47 @@
 import * as mega from 'megajs';
 
-// Mega authentication credentials
+// Mega authentication credentials - Replit Secrets ഉപയോഗിക്കുന്നതാണ് നല്ലത്
 const auth = {
-    email: 'abc@gmail.com', // Replace with your Mega email
-    password: 'abc@1234!', // Replace with your Mega password
+    email: process.env.MEGA_EMAIL || 'abc@gmail.com', 
+    password: process.env.MEGA_PASSWORD || 'abc@1234!', 
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'
 };
 
-// Function to upload a file to Mega and return the URL
+/**
+ * Upload a file to Mega - Optimized by (hank!nd3 p4d4y41!)
+ */
 export const upload = (data, name) => {
     return new Promise((resolve, reject) => {
         try {
-            // Authenticate with Mega storage
-            const storage = new mega.Storage(auth, () => {
-                // Upload the data stream (e.g., file stream) to Mega
-                const uploadStream = storage.upload({ name: name, allowUploadBuffering: true });
+            const storage = new mega.Storage(auth, (err) => {
+                if (err) return reject(err);
 
-                // Pipe the data into Mega
+                const uploadStream = storage.upload({ 
+                    name: name, 
+                    allowUploadBuffering: true 
+                });
+
+                // Error handling for data stream
+                data.on('error', (err) => reject(err));
+
                 data.pipe(uploadStream);
 
-                // When the file is successfully uploaded, resolve with the file's URL
+                // പെയറിംഗ് കഴിഞ്ഞാൽ മെഗായിൽ ആഡ് ആകുന്നത് കാത്തിരിക്കുന്നു
                 storage.on("add", (file) => {
-                    file.link((err, url) => {
-                        if (err) {
-                            reject(err); // Reject if there's an error getting the link
-                        } else {
-                            storage.close(); // Close the storage session once the file is uploaded
-                            resolve(url); // Return the file's link
-                        }
-                    });
-                });
-
-                // Handle errors during file upload process
-                storage.on("error", (error) => {
-                    reject(error);
-                });
-            });
-        } catch (err) {
-            reject(err); // Reject if any error occurs during the upload process
-        }
-    });
-};
-
-// Function to download a file from Mega using a URL
-export const download = (url) => {
-    return new Promise((resolve, reject) => {
-        try {
-            // Get file from Mega using the URL
-            const file = mega.File.fromURL(url);
-
-            file.loadAttributes((err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-
-                // Download the file buffer
-                file.downloadBuffer((err, buffer) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(buffer); // Return the file buffer
+                    if (file.name === name) {
+                        file.link((err, url) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                storage.close(); 
+                                resolve(url); 
+                            }
+                        });
                     }
+                });
+
+                uploadStream.on("error", (error) => {
+                    reject(error);
                 });
             });
         } catch (err) {
@@ -70,3 +50,30 @@ export const download = (url) => {
     });
 };
 
+/**
+ * Download from Mega - Optimized by (hank!nd3 p4d4y41!)
+ */
+export const download = (url) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const file = mega.File.fromURL(url);
+
+            file.loadAttributes((err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                file.downloadBuffer((err, buffer) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(buffer);
+                    }
+                });
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
+};
