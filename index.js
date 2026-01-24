@@ -13,13 +13,13 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Replit-ൽ 0.0.0.0 ഹോസ്റ്റ് തന്നെയാണ് നല്ലത്
-const PORT = process.env.PORT || 5000;
+// PORT സെറ്റിംഗ്സ് പുതുക്കി - Replit-ൽ പോർട്ട് ബിസി ആണെങ്കിൽ മറ്റൊന്ന് എടുക്കും
+const PORT = process.env.PORT || 8080; 
 
 // ലാഗ് ഒഴിവാക്കാൻ ലിസണർ ലിമിറ്റ് കൂട്ടുന്നു
 import('events').then(events => {
-    if (events.EventEmitter) {
-        events.EventEmitter.defaultMaxListeners = 1000;
+    if (events && events.defaultMaxListeners) {
+        events.defaultMaxListeners = 1000;
     }
 });
 
@@ -27,29 +27,35 @@ import('events').then(events => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// സ്റ്റാറ്റിക് ഫയലുകൾ കൃത്യമായി ലോഡ് ചെയ്യാൻ
-app.use(express.static(path.join(__dirname)));
+// സ്റ്റാറ്റിക് ഫയലുകൾ (CSS, Images, pair.html) ലോഡ് ചെയ്യാൻ
+app.use(express.static(__dirname));
 
 // Routes
 app.get('/', (req, res) => {
-    // pair.html ഫയൽ തന്നെയാണോ എന്ന് ഉറപ്പുവരുത്തുക
     res.sendFile(path.join(__dirname, 'pair.html'));
 });
 
 app.use('/pair', pairRouter);
 app.use('/qr', qrRouter);
 
-// 404 Error handling (തെറ്റായ പേജിൽ പോയാൽ റീഡയറക്ട് ചെയ്യാൻ)
+// 404 Error handling
 app.use((req, res) => {
     res.status(404).send('Page Not Found - LIZA-AI');
 });
 
+// സെർവർ സ്റ്റാർട്ട് ചെയ്യുന്നു
 app.listen(PORT, '0.0.0.0', () => { 
  console.log(`\n\n=========================================`);
- console.log(`🚀 LIZA-PAIR SERVER IS ACTIVE!`);
+ console.log(`🚀 LIZA-PAIR SERVER IS STARTING...`);
  console.log(`👤 MADE BY: (hank!nd3 p4d4y41!)`);
  console.log(`📡 URL: http://0.0.0.0:${PORT}`);
  console.log(`=========================================\n\n`);
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.log(`❌ Port ${PORT} is busy. Please wait a moment or restart Replit.`);
+    } else {
+        console.log(err);
+    }
 });
 
 export default app;
