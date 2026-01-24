@@ -36,7 +36,8 @@ router.get('/', async (req, res) => {
         try {
             const { version } = await fetchLatestBaileysVersion();
             
-            let KnightBot = makeWASocket({
+            // KnightBot മാറ്റി LIZA_AI എന്നാക്കി - (hank!nd3 p4d4y41!)
+            let LIZA_AI = makeWASocket({
                 version,
                 auth: {
                     creds: state.creds,
@@ -44,19 +45,17 @@ router.get('/', async (req, res) => {
                 },
                 printQRInTerminal: false,
                 logger: pino({ level: "fatal" }),
-                // കസ്റ്റം ബ്രൗസർ സെറ്റിംഗ്സ് - (hank!nd3 p4d4y41!)
-                // ഇത് Chrome ഓൺ Windows ആയി വാട്സാപ്പിനെ കാണിക്കും
-                browser: ["Chrome (Linux)", "Chrome", "110.0.5481.177"], 
+                // ട്രസ്റ്റഡ് ആയ പുതിയ ബ്രൗസർ സെറ്റിംഗ്സ്
+                browser: ["Ubuntu", "Chrome", "110.0.5563.147"], 
                 connectTimeoutMs: 60000,
                 syncFullHistory: false,
                 markOnlineOnConnect: true,
             });
 
-            if (!KnightBot.authState.creds.registered) {
-                // ഡിലേ അല്പം കൂട്ടി, സെർവർ സ്റ്റേബിൾ ആകാൻ സമയം നൽകുന്നു
+            if (!LIZA_AI.authState.creds.registered) {
                 await delay(5000); 
                 try {
-                    let code = await KnightBot.requestPairingCode(num);
+                    let code = await LIZA_AI.requestPairingCode(num);
                     code = code?.match(/.{1,4}/g)?.join('-') || code;
                     if (!res.headersSent) {
                         res.send({ code });
@@ -64,14 +63,14 @@ router.get('/', async (req, res) => {
                 } catch (error) {
                     console.error("Pairing Code Error:", error);
                     if (!res.headersSent) {
-                        res.status(500).send({ code: 'വാട്സാപ്പ് താൽക്കാലികമായി ബ്ലോക്ക് ചെയ്തു. 5 മിനിറ്റിന് ശേഷം ശ്രമിക്കൂ.' });
+                        res.status(500).send({ code: 'വാട്സാപ്പ് സെർവർ ബിസിയാണ്. അല്പം കഴിഞ്ഞ് ശ്രമിക്കൂ.' });
                     }
                 }
             }
 
-            KnightBot.ev.on('creds.update', saveCreds);
+            LIZA_AI.ev.on('creds.update', saveCreds);
 
-            KnightBot.ev.on('connection.update', async (update) => {
+            LIZA_AI.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect } = update;
                 
                 if (connection === 'open') {
@@ -79,15 +78,17 @@ router.get('/', async (req, res) => {
                     try {
                         const sessionPath = dirs + '/creds.json';
                         if (fs.existsSync(sessionPath)) {
-                            const sessionKnight = fs.readFileSync(sessionPath);
-                            const base64Session = Buffer.from(sessionKnight).toString('base64');
+                            const sessionData = fs.readFileSync(sessionPath);
+                            const base64Session = Buffer.from(sessionData).toString('base64');
                             const sessionID = "LIZA~" + base64Session;
 
                             const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
-                            await KnightBot.sendMessage(userJid, { text: sessionID });
+                            
+                            // സെഷൻ ഐഡി അയക്കുന്നു
+                            await LIZA_AI.sendMessage(userJid, { text: sessionID });
 
-                            await KnightBot.sendMessage(userJid, {
-                                text: `✅ *LIZA-AI CONNECTED!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n\n_സെഷൻ ഐഡി വിജയകരമായി ക്രിയേറ്റ് ചെയ്തു._`
+                            await LIZA_AI.sendMessage(userJid, {
+                                text: `✅ *LIZA-AI CONNECTED!*\n\n*Developer:* (hank!nd3 p4d4y41!)\n\n_ഈ ഐഡി സുരക്ഷിതമായി സൂക്ഷിക്കുക._`
                             });
                         }
                         await delay(2000);
