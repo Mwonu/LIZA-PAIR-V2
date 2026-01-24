@@ -4,6 +4,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 yarn.lock
+package-lock.json
 
 # Environment variables
 .env
@@ -22,10 +23,16 @@ dist/
 build/
 *.log
 
-# Session files
-
-
+# WhatsApp Session files (Security)
+# പെയറിംഗ് സമയത്ത് ഉണ്ടാകുന്ന സെഷനുകൾ ഗിറ്റ്ഹബ്ബിൽ വരാതിരിക്കാൻ
+/qr_sessions/
+auth_info_baileys/
+session/
+creds.json
+*@s.whatsapp.net/
 
 # Temporary files
 tmp/
-temp/ 
+temp/
+.replit
+replit.nix
