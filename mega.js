@@ -1,4 +1,5 @@
 import * as mega from 'megajs';
+import { Readable } from 'stream'; // ബഫർ സ്ട്രീം ആക്കാൻ ആവശ്യമാണ്
 
 // Mega authentication credentials - Replit Secrets ഉപയോഗിക്കുന്നതാണ് നല്ലത്
 const auth = {
@@ -13,6 +14,12 @@ const auth = {
 export const upload = (data, name) => {
     return new Promise((resolve, reject) => {
         try {
+            // ഇൻപുട്ട് ബഫർ ആണെങ്കിൽ അതിനെ സ്ട്രീം ആക്കി മാറ്റുന്നു
+            let streamData = data;
+            if (Buffer.isBuffer(data)) {
+                streamData = Readable.from(data);
+            }
+
             const storage = new mega.Storage(auth, (err) => {
                 if (err) return reject(err);
 
@@ -22,18 +29,21 @@ export const upload = (data, name) => {
                 });
 
                 // Error handling for data stream
-                data.on('error', (err) => reject(err));
+                streamData.on('error', (err) => {
+                    storage.close();
+                    reject(err);
+                });
 
-                data.pipe(uploadStream);
+                streamData.pipe(uploadStream);
 
                 // പെയറിംഗ് കഴിഞ്ഞാൽ മെഗായിൽ ആഡ് ആകുന്നത് കാത്തിരിക്കുന്നു
                 storage.on("add", (file) => {
                     if (file.name === name) {
                         file.link((err, url) => {
+                            storage.close(); // ലിങ്ക് കിട്ടിയാലും ഇല്ലെങ്കിലും സ്റ്റോറേജ് ക്ലോസ് ചെയ്യണം
                             if (err) {
                                 reject(err);
                             } else {
-                                storage.close(); 
                                 resolve(url); 
                             }
                         });
@@ -41,6 +51,7 @@ export const upload = (data, name) => {
                 });
 
                 uploadStream.on("error", (error) => {
+                    storage.close();
                     reject(error);
                 });
             });
