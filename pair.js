@@ -36,13 +36,15 @@ router.get('/', async (req, res) => {
     let dirs = './' + num;
     await removeFile(dirs);
 
+    // സുരക്ഷിതമായി കണക്ഷൻ ക്ലോസ് ചെയ്യാനുള്ള വേരിയബിൾ
+    let connectionTimeout;
+
     async function initiateSession() {
         const { state, saveCreds } = await useMultiFileAuthState(dirs);
 
         try {
             const { version } = await fetchLatestBaileysVersion();
             
-            // KnightBot മാറ്റി LIZA_AI എന്നാക്കി - (hank!nd3 p4d4y41!)
             let LIZA_AI = makeWASocket({
                 version,
                 auth: {
@@ -51,7 +53,7 @@ router.get('/', async (req, res) => {
                 },
                 printQRInTerminal: false,
                 logger: pino({ level: "fatal" }),
-                browser: Browsers.ubuntu("Chrome"), // പഴയ കോഡിലെ അതേ സെറ്റിംഗ്സ്
+                browser: Browsers.ubuntu("Chrome"),
                 connectTimeoutMs: 120000,
                 defaultQueryTimeoutMs: 60000,
                 keepAliveIntervalMs: 10000,
@@ -59,7 +61,6 @@ router.get('/', async (req, res) => {
             });
 
             if (!LIZA_AI.authState.creds.registered) {
-                // പഴയ കോഡിലെ പോലെ 8 സെക്കൻഡ് ഡിലേ നൽകുന്നു (കൂടുതൽ സ്റ്റേബിൾ ആണ്)
                 await delay(8000); 
                 try {
                     let code = await LIZA_AI.requestPairingCode(num);
@@ -81,6 +82,7 @@ router.get('/', async (req, res) => {
                 const { connection, lastDisconnect } = update;
                 
                 if (connection === 'open') {
+                    clearTimeout(connectionTimeout); // കണക്ട് ആയാൽ ടൈംഔട്ട് ഒഴിവാക്കുന്നു
                     await delay(5000);
                     try {
                         const sessionPath = dirs + '/creds.json';
@@ -99,8 +101,9 @@ router.get('/', async (req, res) => {
                         }
 
                         await delay(2000);
+                        // സോക്കറ്റ് സുരക്ഷിതമായി ക്ലോസ് ചെയ്യുന്നു
+                        LIZA_AI.end();
                         removeFile(dirs);
-                        setTimeout(() => { process.exit(0); }, 3000); 
                     } catch (e) {
                         console.log("Message send error:", e);
                     }
@@ -108,10 +111,23 @@ router.get('/', async (req, res) => {
 
                 if (connection === 'close') {
                     const statusCode = lastDisconnect?.error?.output?.statusCode;
-                    if (statusCode !== 401) initiateSession();
-                    else removeFile(dirs);
+                    if (statusCode !== 401) {
+                        // ക്രാഷ് ആകാതിരിക്കാൻ ചെറിയൊരു ഡിലേ ഇട്ട് റീ-കണക്ട് ചെയ്യുക
+                        setTimeout(() => { initiateSession(); }, 3000);
+                    } else {
+                        removeFile(dirs);
+                    }
                 }
             });
+
+            // ⚠️ സുരക്ഷാ ക്രമീകരണം: 2 മിനിറ്റിനുള്ളിൽ കണക്ട് ചെയ്തില്ലെങ്കിൽ ബാക്ക്ഗ്രൗണ്ട് പ്രോസസ് തനിയെ നിർത്തുന്നു
+            connectionTimeout = setTimeout(() => {
+                try {
+                    LIZA_AI.end();
+                    removeFile(dirs);
+                } catch (e) {}
+            }, 120000);
+
         } catch (err) {
             console.error("Initialization Error:", err);
             removeFile(dirs);
