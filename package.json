@@ -1,5 +1,5 @@
 {
-  "name": "LIZA-PAIR",
+  "name": "liza-pair",
   "version": "3.0.0",
   "type": "module",
   "description": "LIZA-PAIR - Optimized WhatsApp Pair Code Generator by (hank!nd3 p4d4y41!)",
@@ -12,7 +12,7 @@
   "dependencies": {
     "@whiskeysockets/baileys": "latest",
     "awesome-phonenumber": "^7.2.0",
-    "axios": "^1.7.0",
+    "axios": "^1.6.0",
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
     "libphonenumber-js": "^1.10.55",
