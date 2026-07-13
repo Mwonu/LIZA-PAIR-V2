@@ -24,15 +24,18 @@ build/
 *.log
 
 # WhatsApp Session files (Security)
-# പെയറിംഗ് സമയത്ത് ഉണ്ടാകുന്ന സെഷനുകൾ ഗിറ്റ്ഹബ്ബിൽ വരാതിരിക്കാൻ
+# പെയറിംഗ് സമയത്ത് ഉണ്ടാകുന്ന താൽക്കാലിക നമ്പറുകൾ മാത്രമുള്ള ഫോൾഡറുകൾ
+/[0-9]*/
 /qr_sessions/
 auth_info_baileys/
 session/
+sessions/
 creds.json
 *@s.whatsapp.net/
 
 # Temporary files
 tmp/
 temp/
-.replit
-replit.nix
+
+# NOTE: .replit, replit.nix എന്നിവ ഇവിടെ നിന്ന് ഒഴിവാക്കിയിട്ടുണ്ട്. 
+# അവ നിങ്ങളുടെ Replit റൺ ചെയ്യാൻ അത്യാവശ്യമാണ്.
