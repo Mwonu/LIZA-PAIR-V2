@@ -386,7 +386,7 @@
     </button>
 
     <div class="footer">
-      <p>© 2026 (hank!nd3 p4d4y41! | LIZA-AI BOT</p>
+      <p>© 2026 (hank!nd3 p4d4y41!) | LIZA-AI BOT</p>
     </div>
   </div>
 
@@ -397,14 +397,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
   <script>
     let currentMode = 'pair';
+    let generatedPairCode = ''; // ✅ കോപി ഇഷ്യൂ പരിഹരിക്കാൻ ഒരു ഗ്ലോബൽ വേരിയബിൾ ഉണ്ടാക്കി
 
     // AI Guide Function
     function lizaAiGuide() {
       const guide = "LIZA-AI പെയറിംഗ് സഹായി 🤖\n\n" +
-                    "1. നമ്പർ നൽകുമ്പോൾ + ഒഴിവാക്കി 91... എന്ന് തുടങ്ങുക.\n" +
-                    "2. കോഡ് ലഭിച്ചാൽ വാട്സാപ്പിൽ വന്ന് 'Link with phone number' സെലക്ട് ചെയ്യുക.\n" +
-                    "3. ഈ സൈറ്റിൽ കണ്ട 8 അക്ക കോഡ് അവിടെ നൽകുക.\n" +
-                    "4. ശേഷം വാട്സാപ്പിൽ കിട്ടുന്ന SESSION_ID കോപ്പി ചെയ്യുക.\n\n" +
+                    "1. നമ്പർ നൽകുമ്പോൾ രാജ്യാന്തര കോഡ് (ഉദാ: +91 അല്ലെങ്കിൽ 91) ഉൾപ്പെടുത്താൻ ശ്രദ്ധിക്കുക.\n" +
+                    "2. കോഡ് ലഭിച്ചാൽ വാട്സാപ്പിൽ ലിങ്ക്ഡ് ഡിവൈസസ് തുറന്ന് 'Link with phone number' സെലക്ട് ചെയ്യുക.\n" +
+                    "3. ഈ സൈറ്റിൽ ലഭിച്ച 8 അക്ക കോഡ് അവിടെ കൃത്യമായി നൽകുക.\n" +
+                    "4. വിജയകരമായി കണക്ട് ആയാൽ നിങ്ങൾക്ക് വാട്സാപ്പിൽ SESSION_ID ഫയൽ ലഭിക്കുന്നതാണ്.\n\n" +
                     "-(hank!nd3 p4d4y41!)";
       alert(guide);
     }
@@ -421,20 +422,24 @@
 
         const submitBtn = document.getElementById('submit');
         const inputGroup = document.getElementById('inputGroup');
+        const copyBtn = document.getElementById('copy');
         
         if (mode === 'pair') {
           submitBtn.innerHTML = '<i class="fas fa-key"></i> Generate Pair Code';
           submitBtn.classList.remove('hidden');
           inputGroup.classList.remove('hidden');
+          copyBtn.style.display = 'flex';
         } else {
           submitBtn.classList.add('hidden');
           inputGroup.classList.add('hidden');
+          copyBtn.style.display = 'none'; // QR കോഡ് മോഡിൽ കോപ്പി ബട്ടൺ ആവശ്യമില്ലാത്തതിനാൽ ഹൈഡ് ചെയ്തു
           generateQRCode();
         }
 
         document.getElementById('codeDisplay').innerHTML = 'Your pair code will appear here';
         document.getElementById('qrDisplay').style.display = 'none';
         document.getElementById('codeDisplay').style.display = 'flex';
+        generatedPairCode = ''; // റീസെറ്റ് ചെയ്യുന്നു
       });
     });
 
@@ -482,13 +487,17 @@
       loadingSpinner.style.display = "block";
       codeDisplay.innerHTML = '';
       qrDisplay.style.display = 'none';
+      generatedPairCode = ''; // റീസെറ്റ് ചെയ്യുന്നു
 
       try {
-        const response = await axios(`/pair?number=${mobileNumber.replace(/[^0-9]/g, "")}`);
+        const cleanNumber = mobileNumber.replace(/[^0-9]/g, "");
+        const response = await axios(`/pair?number=${cleanNumber}`);
         const code = response.data.code || "Service Unavailable";
-        if (code === "Service Unavailable") {
+        
+        if (code === "Service Unavailable" || !response.data.code) {
           codeDisplay.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle"></i> Service Unavailable</div>';
         } else {
+          generatedPairCode = code; // ✅ ഗ്ലോബൽ വേരിയബിളിലേക്ക് കോഡ് സേവ് ചെയ്തു
           codeDisplay.innerHTML = `<div class="success-message"><i class="fas fa-check-circle"></i> CODE: ${code}</div>`;
         }
         codeDisplay.style.display = 'flex';
@@ -501,14 +510,14 @@
     });
 
     function copyCode() {
-      const codeDisplay = document.getElementById("codeDisplay").innerText;
-      if (codeDisplay.includes('CODE:')) {
-        const code = codeDisplay.replace('CODE: ', '');
-        navigator.clipboard.writeText(code).then(() => {
+      if (generatedPairCode) { // ✅ ടെക്സ്റ്റ് മാറ്റങ്ങളില്ലാതെ നേരിട്ട് വേരിയബിളിൽ നിന്ന് കോപ്പി ചെയ്യുന്നു
+        navigator.clipboard.writeText(generatedPairCode).then(() => {
           const copyBtn = document.getElementById("copy");
           const originalText = copyBtn.innerHTML;
           copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
           setTimeout(() => { copyBtn.innerHTML = originalText; }, 2000);
+        }).catch(err => {
+          alert("കോപ്പി ചെയ്യാൻ സാധിച്ചില്ല. ദയവായി മാനുവലായി കോപ്പി ചെയ്യുക.");
         });
       } else {
         alert("കോഡ് ജനറേറ്റ് ചെയ്ത ശേഷം മാത്രം കോപ്പി ചെയ്യുക!");
